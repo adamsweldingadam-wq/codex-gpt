@@ -1,0 +1,211 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+@font-face{font-family:'Oswald';font-weight:200 700;src:url('fonts/Oswald-700.woff2') format('woff2');}
+@font-face{font-family:'Open Sans';font-weight:300 800;src:url('fonts/OpenSans-700.woff2') format('woff2');}
+:root{
+  --steel-0:#0f1216; --steel-1:#171a20; --steel-2:#23272f; --steel-3:#30353f;
+  --chrome:#a9afb8; --white:#f5f3ee; --orange:#ff7a00; --orange-2:#ff9a1f; --hot:#ffd27a;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{background:var(--steel-1);overflow:hidden}
+#stage{position:relative;overflow:hidden;color:var(--white);font-family:'Open Sans',sans-serif;
+  background:
+    radial-gradient(120% 90% at 70% 60%, rgba(255,122,0,.10), transparent 55%),
+    radial-gradient(140% 120% at 30% 0%, #2a2f38 0%, var(--steel-1) 55%, var(--steel-0) 100%);}
+#stage::after{content:"";position:absolute;inset:0;pointer-events:none;
+  background:repeating-linear-gradient(0deg, rgba(255,255,255,.018) 0 1px, transparent 1px 3px);}
+svg.layer{position:absolute;inset:0}
+.osw{font-family:'Oswald',sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:-.005em;line-height:.92}
+.kicker{font-family:'Oswald',sans-serif;font-weight:500;text-transform:uppercase;color:var(--orange);letter-spacing:.26em}
+.dot{color:var(--orange)}
+.molten{background:linear-gradient(180deg,#fff3c4 0%,#ffc15e 28%,#ff8a1a 58%,#e2520a 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 0 18px rgba(255,120,0,.45));}
+.strip{font-family:'Open Sans',sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--chrome)}
+.strip b{color:var(--white);font-weight:800}
+.abs{position:absolute}
+.logo{position:absolute;filter:drop-shadow(0 10px 30px rgba(0,0,0,.6))}
+.card{position:absolute;background:linear-gradient(160deg,rgba(255,255,255,.06),rgba(255,255,255,.015));
+  border:1px solid rgba(255,255,255,.09);border-top:4px solid var(--orange);border-radius:6px;padding:30px 30px 26px}
+.card h3{font-family:'Oswald',sans-serif;font-weight:700;font-size:64px;line-height:1;color:var(--orange);text-transform:uppercase}
+.card h4{font-family:'Oswald',sans-serif;font-weight:500;font-size:30px;line-height:1.1;margin:6px 0 18px;text-transform:uppercase;letter-spacing:.06em}
+.card li{list-style:none;font-size:24px;line-height:1.35;font-weight:600;color:#d9dce1;padding-left:26px;position:relative;margin-bottom:6px}
+.card li::before{content:"";position:absolute;left:0;top:.5em;width:12px;height:12px;background:var(--orange);transform:rotate(45deg)}
+.check{display:flex;align-items:center;gap:18px}
+.check::before{content:"";flex:none;width:18px;height:18px;background:var(--orange);transform:rotate(45deg)}
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<script>
+const params = new URLSearchParams(location.search);
+const A = params.get('a') || 'xheader';
+const SIZES = {profile:[800,800], xheader:[1500,500], youtube:[2560,1440], ig1:[1080,1350], ig2:[1080,1350], ig3:[1080,1350]};
+const [W,H] = SIZES[A];
+const stage = document.getElementById('stage');
+stage.style.width = W+'px'; stage.style.height = H+'px';
+const NS = 'http://www.w3.org/2000/svg';
+function el(tag, attrs, parent){ const e=document.createElementNS(NS,tag); for(const k in attrs) e.setAttribute(k,attrs[k]); if(parent) parent.appendChild(e); return e; }
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const rnd = mulberry32(42);
+const R=(a,b)=>a+(b-a)*rnd();
+function mix(c1,c2,t){const p=s=>[1,3,5].map(i=>parseInt(s.slice(i,i+2),16));const a=p(c1),b=p(c2);return '#'+a.map((v,i)=>Math.round(v+(b[i]-v)*t).toString(16).padStart(2,'0')).join('');}
+// heat ramp: cooled silver -> straw/bronze -> orange -> yellow-white
+const RAMP=[[0,'#8b9199'],[.3,'#9b8b6c'],[.55,'#b8622a'],[.72,'#ff7a00'],[.86,'#ffad2e'],[.95,'#ffe08a'],[1,'#fff8e0']];
+function heat(t){for(let i=1;i<RAMP.length;i++){if(t<=RAMP[i][0]){const[a,ca]=RAMP[i-1],[b,cb]=RAMP[i];return mix(ca,cb,(t-a)/(b-a));}}return RAMP[RAMP.length-1][1];}
+
+const svg = el('svg',{class:'layer',width:W,height:H,viewBox:`0 0 ${W} ${H}`});
+const defs = el('defs',{},svg);
+// diamond plate pattern
+const pat = el('pattern',{id:'tread',width:56,height:56,patternUnits:'userSpaceOnUse'},defs);
+const lg = el('linearGradient',{id:'lozg',x1:0,y1:0,x2:0,y2:1},defs);
+el('stop',{offset:'0','stop-color':'#ffffff','stop-opacity':'.55'},lg);
+el('stop',{offset:'1','stop-color':'#000000','stop-opacity':'.6'},lg);
+[[14,14,45],[42,42,45],[42,14,-45],[14,42,-45]].forEach(([x,y,r])=>el('rect',{x:x-13,y:y-3.2,width:26,height:6.4,rx:3.2,fill:'url(#lozg)',transform:`rotate(${r} ${x} ${y})`},pat));
+el('rect',{width:W,height:H,fill:'url(#tread)',opacity:A==='profile'?.07:.06},svg);
+// glow filter for sparks
+const f = el('filter',{id:'glow',x:'-50%',y:'-50%',width:'200%',height:'200%'},defs);
+el('feGaussianBlur',{stdDeviation:'2.4',result:'b'},f);
+const fm = el('feMerge',{},f); el('feMergeNode',{in:'b'},fm); el('feMergeNode',{in:'b'},fm); el('feMergeNode',{in:'SourceGraphic'},fm);
+const fsh = el('filter',{id:'shadow',x:'-20%',y:'-50%',width:'140%',height:'200%'},defs);
+el('feGaussianBlur',{stdDeviation:'4'},fsh);
+const fb = el('filter',{id:'soft',x:'-50%',y:'-50%',width:'200%',height:'200%'},defs);
+el('feGaussianBlur',{stdDeviation:'10'},fb);
+let gid=0;
+function rippleGrad(c){
+  const id='rg'+(gid++);
+  const g=el('radialGradient',{id,cx:.36,cy:.34,r:.78,fx:.32,fy:.3},defs);
+  [[0,mix(c,'#ffffff',.62)],[.22,mix(c,'#ffffff',.22)],[.55,c],[.82,mix(c,'#000000',.38)],[1,mix(c,'#000000',.66)]]
+    .forEach(([o,col])=>el('stop',{offset:o,'stop-color':col},g));
+  return id;
+}
+// pts: polyline. width: bead width. Bead travels from pts[0] to pts[last]; hot end at last.
+function bead(pts, w, opts={}){
+  const g = el('g',{},svg);
+  // cumulative length
+  const seg=[];let L=0;for(let i=1;i<pts.length;i++){const dx=pts[i][0]-pts[i-1][0],dy=pts[i][1]-pts[i-1][1];const l=Math.hypot(dx,dy);seg.push([L,l,pts[i-1],dx/l,dy/l]);L+=l;}
+  function at(s){for(const[s0,l,p,ux,uy]of seg){if(s<=s0+l)return[p[0]+ux*(s-s0),p[1]+uy*(s-s0),Math.atan2(uy,ux)];}const[s0,l,p,ux,uy]=seg[seg.length-1];return[p[0]+ux*l,p[1]+uy*l,Math.atan2(uy,ux)];}
+  // heat-affected zone tint band behind the bead
+  const hazPath = 'M'+pts.map(p=>p.join(',')).join(' L');
+  const hz = el('linearGradient',{id:'haz'+gid,gradientUnits:'userSpaceOnUse',x1:pts[0][0],y1:pts[0][1],x2:pts[pts.length-1][0],y2:pts[pts.length-1][1]},defs);
+  [[0,'#3e5aa8',.0],[.25,'#4a5fb0',.22],[.55,'#8b5cae',.26],[.8,'#c9a24a',.30],[.95,'#ff8a1a',.45],[1,'#ffb347',.6]].forEach(([o,c,op])=>el('stop',{offset:o,'stop-color':c,'stop-opacity':op},hz));
+  el('path',{d:hazPath,fill:'none',stroke:`url(#haz${gid})`,'stroke-width':w*2.6,'stroke-linecap':'round',filter:'url(#soft)'},g);
+  el('path',{d:hazPath,fill:'none',stroke:'#000','stroke-opacity':.55,'stroke-width':w*1.05,'stroke-linecap':'round',filter:'url(#shadow)',transform:`translate(0 ${w*0.28})`},g);
+  gid++;
+  const grads = {};
+  for(let s=0;s<=L;s+=w*0.25*(0.85+0.3*rnd())){
+    const t=s/L;
+    let [x,y,ang]=at(s);
+    const lat=(rnd()-.5)*w*0.06; x+=-Math.sin(ang)*lat; y+=Math.cos(ang)*lat;
+    const ht = Math.pow(t, opts.heatPow||2.2);
+    const c = heat(Math.min(1,ht));
+    const key=c; if(!grads[key]) grads[key]=rippleGrad(c);
+    const wob = 1 + (rnd()-.5)*0.06;
+    const e = el('ellipse',{cx:0,cy:0,rx:w*0.42,ry:w*0.5*wob,fill:`url(#${grads[key]})`,
+      stroke:mix(c,'#000000',ht>.7?.3:.6),'stroke-opacity':ht>.7?.45:.55,'stroke-width':Math.max(1,w*0.03),
+      transform:`translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${(ang*180/Math.PI).toFixed(2)})`},g);
+  }
+  const [ex,ey,eang]=at(L);
+  // arc glow + puddle
+  const pg = el('radialGradient',{id:'pg'+gid},defs);
+  [[0,'#ffffff',1],[.18,'#fff4c8',.95],[.4,'#ffbf4a',.7],[.7,'#ff7a00',.25],[1,'#ff6a00',0]].forEach(([o,c,op])=>el('stop',{offset:o,'stop-color':c,'stop-opacity':op},pg));
+  el('circle',{cx:ex,cy:ey,r:w*(opts.glow||7),fill:`url(#pg${gid})`,style:'mix-blend-mode:screen'},g);
+  el('ellipse',{cx:ex,cy:ey,rx:w*0.62,ry:w*0.58,fill:'#fffbea',filter:'url(#glow)'},g);
+  gid++;
+  // sparks
+  const sg = el('g',{filter:'url(#glow)','stroke-linecap':'round'},svg);
+  const N = opts.sparks||90, base=opts.sparkDir ?? -Math.PI/2, spread=opts.spread ?? 1.35, len=opts.sparkLen||w*9;
+  for(let i=0;i<N;i++){
+    const a = base + (rnd()-.5)*2*spread*(0.6+0.4*rnd());
+    const d0 = w*R(.5,1.6), l = len*Math.pow(rnd(),1.6)*R(.35,1);
+    const x0=ex+Math.cos(a)*d0, y0=ey+Math.sin(a)*d0;
+    const x1=ex+Math.cos(a)*(d0+l), y1=ey+Math.sin(a)*(d0+l)+ (l*l)/(len*6);
+    const mx=(x0+x1)/2, my=(y0+y1)/2 - l*0.04;
+    const hot = rnd();
+    const col = hot>.55?'#fff1b8':hot>.25?'#ffc34d':'#ff8a1a';
+    el('path',{d:`M${x0.toFixed(1)},${y0.toFixed(1)} Q${mx.toFixed(1)},${my.toFixed(1)} ${x1.toFixed(1)},${y1.toFixed(1)}`,stroke:col,'stroke-width':R(.8,2.4)*(w/26),'stroke-opacity':R(.55,1),fill:'none'},sg);
+    if(rnd()<.35) el('circle',{cx:x1,cy:y1,r:R(.8,2)*(w/26),fill:'#ffd27a',opacity:R(.5,1)},sg);
+  }
+  return {ex,ey};
+}
+function html(s){stage.insertAdjacentHTML('beforeend',s);}
+function logo(x,y,w){html(`<img class="logo" src="icon-512.png" style="left:${x}px;top:${y}px;width:${w}px">`);}
+const TAG = `<span>BINS<span class="dot">.</span></span> <span>BEADS<span class="dot">.</span></span>`;
+const TAG2 = `<span>BEARINGS<span class="dot">.</span></span> <span>BOOMS<span class="dot">.</span></span>`;
+
+stage.appendChild(svg);
+
+if(A==='profile'){
+  // pipe-weld ring around the logo
+  const cx=400, cy=400, r=356, pts=[];
+  const a0=Math.PI*0.62, a1=a0+Math.PI*1.72;
+  for(let i=0;i<=120;i++){const a=a0+(a1-a0)*i/120;pts.push([cx+Math.cos(a)*r, cy+Math.sin(a)*r]);}
+  bead(pts, 30, {sparks:70, sparkDir:a1+Math.PI*0.05, spread:1.1, sparkLen:150, glow:5, heatPow:1.3});
+  logo(400-312, 400-312, 624);
+}
+
+if(A==='xheader'){
+  bead([[-30,384],[1345,384]], 30, {sparks:110, sparkDir:-Math.PI*0.36, spread:0.85, sparkLen:240, glow:6});
+  html(`<div class="abs kicker" style="left:440px;top:52px;font-size:25px">Adams Welding ~ Millwright ~ Crane</div>`);
+  html(`<div class="abs osw" style="left:436px;top:92px;font-size:112px">${TAG}<br>${TAG2}</div>`);
+  html(`<div class="abs strip" style="left:440px;top:426px;font-size:20px">Harrisburg, AR &nbsp;·&nbsp; <b>Rig trucks on call 24/7</b> &nbsp;·&nbsp; (870) 408-0221</div>`);
+}
+
+if(A==='youtube'){
+  // safe area: x 507-2053, y 508-931
+  bead([[-40,892],[2010,892]], 32, {sparks:150, sparkDir:-Math.PI*0.36, spread:0.9, sparkLen:330, glow:6});
+  logo(560, 528, 450);
+  html(`<div class="abs kicker" style="left:1070px;top:536px;font-size:28px">Adams Welding ~ Millwright ~ Crane</div>`);
+  html(`<div class="abs osw" style="left:1066px;top:580px;font-size:104px">${TAG}<br>${TAG2}</div>`);
+  html(`<div class="abs strip" style="left:1070px;top:806px;font-size:22px">Harrisburg, AR &nbsp;·&nbsp; <b>Rig trucks on call 24/7</b> &nbsp;·&nbsp; (870) 408-0221</div>`);
+  html(`<div class="abs osw" style="left:0;right:0;top:40px;text-align:center;font-size:330px;color:rgba(255,255,255,.028);white-space:nowrap">Adams Welding</div>`);
+}
+
+if(A==='ig1'){
+  html(`<div class="abs kicker" style="left:84px;top:84px;font-size:30px">Adams Welding ~ Millwright ~ Crane</div>`);
+  const rows=[['Bins','Grain systems'],['Beads','Certified welding'],['Bearings','Millwright & mechanical'],['Booms','Crane & rigging']];
+  rows.forEach(([w,l],i)=>{
+    const y=150+i*218;
+    html(`<div class="abs osw" style="left:78px;top:${y}px;font-size:176px">${w}<span class="dot">.</span></div>`);
+    html(`<div class="abs strip" style="left:86px;top:${y+170}px;font-size:25px;color:#c9cdd3">${l}</div>`);
+  });
+  bead([[-30,1112],[880,1112]], 34, {sparks:130, sparkDir:-Math.PI*0.36, spread:0.85, sparkLen:340, glow:6});
+  html(`<div class="abs strip" style="left:84px;top:1196px;font-size:23px;line-height:1.6">Harrisburg, AR<br><b>Rig trucks on call 24/7</b></div>`);
+  logo(800, 1120, 210);
+}
+
+if(A==='ig2'){
+  html(`<div class="abs kicker" style="left:80px;top:78px;font-size:28px">What we do</div>`);
+  html(`<div class="abs osw" style="left:76px;top:122px;font-size:120px">Four trades<span class="dot">.</span><br><span class="molten">One call<span>.</span></span></div>`);
+  bead([[-30,382],[830,382]], 22, {sparks:70, sparkDir:-Math.PI*0.3, spread:0.8, sparkLen:190, glow:6});
+  const cards=[
+    ['Bins','Grain systems',['Bins built & repaired','Loops, sweeps & unloads','Legs, spouting & catwalks','Aeration, fans & dryers']],
+    ['Beads','Certified welding',['AWS D1.1 & D1.2 certified','Pipe & gas lines','TIG stainless & aluminum','Mobile rig trucks 24/7']],
+    ['Bearings','Millwright',['Bearings & gearboxes','Drives, motors & shafts','Belts, chain & augers','Shutdown crews']],
+    ['Booms','Crane & rigging',['Our own 40-ton crane','NCCCO operator','Certified rigger','90-ton for big lifts']],
+  ];
+  cards.forEach(([h,s,items],i)=>{
+    const x=80+(i%2)*468, y=440+Math.floor(i/2)*388;
+    html(`<div class="card" style="left:${x}px;top:${y}px;width:452px;height:368px"><h3>${h}<span style="color:var(--white)">.</span></h3><h4>${s}</h4><ul>${items.map(t=>`<li>${t}</li>`).join('')}</ul></div>`);
+  });
+  html(`<div class="abs strip" style="left:80px;top:1240px;font-size:24px">Call/Text <b>(870) 408-0221</b> &nbsp;·&nbsp; adamswelding.net</div>`);
+}
+
+if(A==='ig3'){
+  html(`<div class="abs kicker" style="left:80px;top:80px;font-size:28px">Adams Welding ~ Harrisburg, AR</div>`);
+  html(`<div class="abs osw molten" style="left:62px;top:96px;font-size:400px;line-height:1">24/7</div>`);
+  html(`<div class="abs osw" style="left:76px;top:500px;font-size:104px">Rig trucks<br>on call<span class="dot">.</span></div>`);
+  bead([[-30,760],[900,760]], 30, {sparks:120, sparkDir:-Math.PI*0.36, spread:0.95, sparkLen:290, glow:6});
+  html(`<div class="abs strip" style="left:80px;top:826px;font-size:26px;color:var(--orange)">Call / Text</div>`);
+  html(`<div class="abs osw" style="left:76px;top:862px;font-size:112px;letter-spacing:.01em">(870) 408-0221</div>`);
+  const checks=['Licensed, bonded & insured','$3 million insurance + workers’ comp','AWS D1.1 & D1.2 certified welders','NE Arkansas & the Mid-South'];
+  html(`<div class="abs" style="left:80px;top:1018px;display:grid;gap:16px">${checks.map(c=>`<div class="check strip" style="font-size:24px;color:#dfe2e6">${c}</div>`).join('')}</div>`);
+  logo(820, 1130, 190);
+}
+document.fonts.ready.then(()=>{ document.body.setAttribute('data-ready','1'); });
+</script>
+</body>
+</html>
